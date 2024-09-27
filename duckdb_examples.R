@@ -10,8 +10,8 @@ testdata <- tbl(con, "raw") |>
   filter(tag_id %in% tagid) |>
   collect()
 
-start_buff = as.Date("2023-08-01", tz="UTC") #start - 2*60*60
-end_buff = as.Date("2023-08-07", tz="UTC") #end + 2*60*60
+start_buff = as.Date("2023-08-01", tz="UTC") 
+end_buff = as.Date("2023-08-07", tz="UTC")
 
 nodehealth <- tbl(con, "node_health") |>
   filter(time >= start_buff  & time <= end_buff) |>
