@@ -13,3 +13,5 @@ DBI::dbDisconnect(con)
 
 time_elapse <- Sys.time() - start
 print(time_elapse)
+
+#raw <- tbl(con, "node_health") |> collect()
