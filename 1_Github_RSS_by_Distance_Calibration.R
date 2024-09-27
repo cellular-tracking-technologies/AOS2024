@@ -56,7 +56,7 @@ mytest$Time <- as.POSIXct(mytest$time_utc, tz="UTC")
 start <- min(mytest$Time)
 end <- max(mytest$Time)
 
-con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/radio_projects/data/radio_projects/meadows/meadows.duckdb", read_only = TRUE)
+con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/workshop/meadows.duckdb", read_only = TRUE)
 
 testdata <- tbl(con, "raw") |> #tbl(con, "blu") |>
   filter(time >= as.Date("2023-07-31") & time <= as.Date("2023-10-31")) |>
