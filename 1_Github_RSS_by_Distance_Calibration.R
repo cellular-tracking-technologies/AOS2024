@@ -7,18 +7,9 @@ library(data.table)
 
 # Reset R's brain - removes all previous objects
 rm(list=ls())
-#data.setup(test, tag_col="Tag.Id", tagid="0C5F5CED", time_col="Time..UTC.",timezone="UTC",x="Longitude",y="Latitude", node_ids=node_ids, loc_precision=4)
-#tag_col <- "Tag.Id"
 tagid = c("072A6633","2D4B782D") #"0C5F5CED"
-#time_col="Time..UTC."
 timezone="UTC"
-#x="Longitude"
-#y="Latitude"
-#loc_precision=4
 options(digits=9)
-## Set by User
-# Working Directory - Provide/path/on/your/computer/where/master/csv/file/of/nodes/is/found/and/where/Functions_CTT.Network.R/is/located
-# Directory for Output data - Provide/path/where/you/want/output/data/to/be/stored/
 outpath <- "/home/jess/Documents/workshop/multilateration/"
 
 ## Bring in functions 
@@ -29,32 +20,8 @@ source("R/Functions_Paxton-CTTUpdate.R")
 #create time window by reducing location precision
 #or can input data with TestId column (user-defined window)
 
-#INPUT
-#test DATA FRAME looks like...
-#tag_col, time_col, x, y, latlon=T
-#must pass Start.Time, Stop.Time, TestId if you pass your own
-#tagid = character or vector of tag ids
-#time_col = character or vector of time columns
-#timezone only applies to if your time column(s) are characters
-
-#OUTPUT: combined/matched up data set
-
-#node_ids = c(
-#  "B25AC19E",
-#  "44F8E426",
-#  "FAB6E12",
-#  "1EE02113",
-#  "565AA5B9",
-#  "EE799439",
-#  "1E762CF3",
-#  "A837A3F4",
-#  "484ED33B"
-#)
-
 mytest <- read.csv("~/Downloads/calibration_2023_8_3_all.csv")
 mytest$Time <- as.POSIXct(mytest$time_utc, tz="UTC")
-start <- min(mytest$Time)
-end <- max(mytest$Time)
 
 con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/workshop/meadows.duckdb", read_only = TRUE)
 
@@ -63,10 +30,8 @@ testdata <- tbl(con, "raw") |> #tbl(con, "blu") |>
   filter(tag_id %in% tagid) |>
   collect()
 
-#testdata$syncid <- paste(format(testdata$time, "%Y-%m-%d %H:%M"), testdata$sync, sep="_")
-
-start_buff = as.Date("2023-08-01", tz="UTC") #start - 2*60*60
-end_buff = as.Date("2023-08-07", tz="UTC") #end + 2*60*60
+start_buff = as.Date("2023-08-01", tz="UTC")
+end_buff = as.Date("2023-08-07", tz="UTC")
 
 nodehealth <- tbl(con, "node_health") |>
   filter(time >= start_buff  & time <= end_buff) |>
@@ -75,7 +40,6 @@ nodehealth <- tbl(con, "node_health") |>
 DBI::dbDisconnect(con)
 
 nodes <- node_file(nodehealth)
-#nodes <- nodes[nodes$node_id %in% node_ids,]
 
 combined.data <- data.setup(mytest, testdata, nodes, tag_col="tag_id", tagid="072A6633", time_col="Time",timezone="UTC",x="lon",y="lat", loc_precision=6, fileloc="/home/jess/Documents/radio_projects/data/radio_projects/meadows/meadows.duckdb", filetype="raw") #, loc_precision=4
 ## Bring in 3 Needed files - Test Information, RSS values, and Node Information - change file names in " " as needed
