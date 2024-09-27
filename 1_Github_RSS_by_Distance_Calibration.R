@@ -7,29 +7,23 @@ library(data.table)
 
 # Reset R's brain - removes all previous objects
 rm(list=ls())
-
-
-
 #data.setup(test, tag_col="Tag.Id", tagid="0C5F5CED", time_col="Time..UTC.",timezone="UTC",x="Longitude",y="Latitude", node_ids=node_ids, loc_precision=4)
-
-tag_col <- "Tag.Id"
+#tag_col <- "Tag.Id"
 tagid = c("072A6633","2D4B782D") #"0C5F5CED"
-time_col="Time..UTC."
+#time_col="Time..UTC."
 timezone="UTC"
-x="Longitude"
-y="Latitude"
+#x="Longitude"
+#y="Latitude"
 #loc_precision=4
 options(digits=9)
 ## Set by User
 # Working Directory - Provide/path/on/your/computer/where/master/csv/file/of/nodes/is/found/and/where/Functions_CTT.Network.R/is/located
-working.directory <- "/home/jess/Documents/radio_projects/EcolEvol.Manuscript_Optimizing.Trilateration"
-
 # Directory for Output data - Provide/path/where/you/want/output/data/to/be/stored/
-outpath <- "/home/jess/Documents/radio_projects/paxton/"
+outpath <- "/home/jess/Documents/workshop/multilateration/"
 
 ## Bring in functions 
 setwd(working.directory)
-source("Functions_Paxton-CTTUpdate.R")
+source("R/Functions_Paxton-CTTUpdate.R")
 
 #re-sample data for calibration 
 #create time window by reducing location precision
