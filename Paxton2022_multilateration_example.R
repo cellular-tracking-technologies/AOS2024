@@ -89,7 +89,6 @@ nls.mod <- nls(avgRSS ~ a * exp(-S * distance) + K, start = list(a = a, S = S, K
   # Model Summary
 summary(nls.mod)
   # Model Coefficients 
-    # **** you will use these coefficient values to estimate distance in Github_TestDataset_LocalizationError.R and Github_Simulations.R scripts *****
 coef(nls.mod)
 
 ## Check the fit of the model and get predicted values
