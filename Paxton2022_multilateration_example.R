@@ -19,7 +19,7 @@ source("R/Functions_Paxton-CTTUpdate.R")
 mytest <- read.csv("calibration_2023_8_3_all.csv")
 mytest$Time <- as.POSIXct(mytest$time_utc, tz="UTC")
 
-con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/workshop/AOS2024workshop_Meadows/workshop/meadows.duckdb", read_only = TRUE)
+con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/workshop/full_data/meadows.duckdb", read_only = TRUE)
 
 testdata <- tbl(con, "raw") |> #tbl(con, "blu") |>
   filter(time >= as.Date("2023-07-31") & time <= as.Date("2023-10-31")) |>
