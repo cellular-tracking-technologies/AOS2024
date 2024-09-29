@@ -114,7 +114,11 @@ ggplot(combined.data, aes(x = distance, y = avgRSS, color=node_id)) +
   scale_x_continuous(name = "Distance (m)") +
   theme_classic()
 
-combined.data <- estimate.distance(combined.data, unname(coef(nls.mod)[3]), unname(coef(nls.mod)[1]), unname(coef(nls.mod)[2]))
+K <- unname(coef(nls.mod)[3])
+a <- unname(coef(nls.mod)[1])
+S <- unname(coef(nls.mod)[2])
+
+combined.data <- estimate.distance(combined.data, K, a, S)
 no.filters <- trilateration.TestData.NoFilter(combined.data)
 RSS.FILTER <- c(-80, -85, -90, -95)
 RSS.filters <- trilateration.TestData.RSS.Filter(combined.data, RSS.FILTER)
@@ -132,10 +136,9 @@ test_data <- testdata %>%
 
 # Function to prepare beep data for trilateration 
 # by estimating distance of a signal based on RSS values
-beep.grouped <- prep.data(test_data,nodes,SLIDE.TIME,GROUP.TIME,K=unname(coef(nls.mod)[3]), a=unname(coef(nls.mod)[1]), S=unname(coef(nls.mod)[2])) 
+beep.grouped <- prep.data(test_data,nodes,SLIDE.TIME,GROUP.TIME,K, a, S) 
 
-DIST.filter <- 350
 RSS.filter <- -95
-location.estimates <- trilateration(beep.grouped, nodes, RSS.FILTER, DIST.filter)
+location.estimates <- trilateration(beep.grouped, nodes, RSS.FILTER)
 
 

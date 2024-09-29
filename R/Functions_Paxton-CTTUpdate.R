@@ -590,7 +590,7 @@ prep.data <- function(x,y, SLIDE.TIME, GROUP.TIME, K, a, S) {
   
 }
 
-trilateration <- function(x, nodes, RSS.FILTER, DIST.FILTER) {
+trilateration <- function(x, nodes, RSS.FILTER) {
   
   # supress warnings
   options(warn = -1)
@@ -649,8 +649,8 @@ trilateration <- function(x, nodes, RSS.FILTER, DIST.FILTER) {
       # and get all nodes within a particular distance of that node
       nodes.test <- dist.nodes_df %>%
         dplyr::filter(NodeId %in% max.RSSI$node_id) %>%
-        tidyr::gather(key = "NodeId", value = "distance", -NodeId) %>%
-        dplyr::filter(distance <= DIST.filter)
+        tidyr::gather(key = "NodeId", value = "distance", -NodeId) #%>%
+        #dplyr::filter(distance <= DIST.filter)
       
       # Only keep nodes that are within the specified distance of node with strongest avg.RSSI
       sub.test.dist <- sub.test %>%
