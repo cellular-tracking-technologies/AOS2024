@@ -10,7 +10,6 @@ rm(list=ls())
 tagid = c("072A6633","2D4B782D") #"0C5F5CED"
 timezone="UTC"
 options(digits=9)
-outpath <- "/home/jess/Documents/workshop/multilateration/"
 
 ## Bring in functions 
 source("R/Functions_Paxton-CTTUpdate.R")
