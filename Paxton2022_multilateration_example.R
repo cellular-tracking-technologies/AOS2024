@@ -21,7 +21,7 @@ mytest$Time <- as.POSIXct(mytest$time_utc, tz="UTC")
 
 con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/workshop/full_data/meadows.duckdb", read_only = TRUE)
 
-testdata <- tbl(con, "raw") |> #tbl(con, "blu") |>
+testdata <- tbl(con, "raw") |> 
   filter(time >= as.Date("2023-07-31") & time <= as.Date("2023-10-31")) |>
   filter(tag_id %in% tagid) |>
   collect()
