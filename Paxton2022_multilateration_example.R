@@ -99,7 +99,8 @@ combined.data$fit <- fitted(nls.mod)
 
   # Plot residuals by fit or distance
 #ggplot(combined.data, aes(x = distance, y = E, color = node_id)) +
-#         geom_point(size = 2)
+#        geom_point(size = 2)
+
 #ggplot(combined.data, aes(x = fit, y = E, color = node_id)) +
 #  geom_point(size = 2)
 
@@ -109,7 +110,7 @@ combined.data$pred <- predict(nls.mod)
 ## Plot with predicted line
 ggplot(combined.data, aes(x = distance, y = avgRSS, color=node_id)) + 
   geom_point() +
-  geom_line(aes(y = pred), color = "#689FBB", lwd = 1.25) +
+  geom_line(aes(y = pred), color="black", lwd = 1.25) +
   scale_y_continuous(name = "RSS (dB)") +
   scale_x_continuous(name = "Distance (m)") +
   theme_classic()
