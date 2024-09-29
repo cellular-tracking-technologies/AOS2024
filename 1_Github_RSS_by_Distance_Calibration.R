@@ -119,9 +119,9 @@ combined.data <- estimate.distance(combined.data, unname(coef(nls.mod)[3]), unna
 no.filters <- trilateration.TestData.NoFilter(combined.data)
 RSS.FILTER <- c(-80, -85, -90, -95)
 RSS.filters <- trilateration.TestData.RSS.Filter(combined.data, RSS.FILTER)
-DIST.FILTER <- c(315,500,750,1000)
+#DIST.FILTER <- c(315,500,750,1000)
 # Calculate error of location estimates of each test location when Distance filters are applied prior to trilateration 
-Dist.filters <- trilateration.TestData.Distance.Filter(combined.data, DIST.FILTER)
+#Dist.filters <- trilateration.TestData.Distance.Filter(combined.data, DIST.FILTER)
 
 SLIDE.TIME <- 2
 GROUP.TIME <- "1 min"
@@ -137,6 +137,6 @@ beep.grouped <- prep.data(test_data,nodes,SLIDE.TIME,GROUP.TIME,K=unname(coef(nl
 
 DIST.filter <- 350
 RSS.filter <- -95
-location.estimates <- trilateration(beep.grouped, nodes, RSS.FILTER, DIST.FILTER)
+location.estimates <- trilateration(beep.grouped, nodes, RSS.FILTER, DIST.filter)
 
 
