@@ -22,7 +22,7 @@ mytest$Time <- as.POSIXct(mytest$time_utc, tz="UTC")
 con <- DBI::dbConnect(duckdb::duckdb(), dbdir = "/home/jess/Documents/workshop/full_data/meadows.duckdb", read_only = TRUE)
 
 testdata <- tbl(con, "raw") |> 
-  filter(time >= as.Date("2023-07-31") & time <= as.Date("2023-10-31")) |>
+  filter(time >= as.Date("2023-08-01") & time <= as.Date("2023-10-31")) |> 
   filter(tag_id %in% tagid) |>
   collect()
 
@@ -127,8 +127,16 @@ RSS.filters <- trilateration.TestData.RSS.Filter(combined.data, RSS.FILTER)
 #Dist.filters <- trilateration.TestData.Distance.Filter(combined.data, DIST.FILTER)
 
 SLIDE.TIME <- 2
-GROUP.TIME <- "1 min"
+GROUP.TIME <- "10 sec"
 
+testtag_data <- testdata %>%
+  filter(time >= as.POSIXct("2023-08-03 19:50:45", tz="UTC") & time <= as.Date("2023-08-04")) %>%
+  filter(tag_id == "072A6633") %>%
+  collect()
+
+beep.grouped <- prep.data(testtag_data,nodes,SLIDE.TIME,GROUP.TIME,K, a, S, startval=as.POSIXct("2023-08-03 19:50:45", tz="UTC")) 
+
+#Swamp Sparrow
 test_data <- testdata %>%
   filter(time >= as.Date("2023-10-05") & time <= as.Date("2023-10-15")) %>%
   filter(tag_id == "2D4B782D") %>%

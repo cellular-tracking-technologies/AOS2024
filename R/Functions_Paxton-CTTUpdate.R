@@ -541,7 +541,7 @@ trilateration.TestData.Distance.Filter <- function(x, DIST.FILTER){
   return(list(combined_results_final, summary.stats_results))
 }
 
-prep.data <- function(x,y, SLIDE.TIME, GROUP.TIME, K, a, S) {
+prep.data <- function(x,y, SLIDE.TIME, GROUP.TIME, K, a, S, startval = NULL) {
   
   # supress warnings
   options(warn = -1)
@@ -563,16 +563,25 @@ prep.data <- function(x,y, SLIDE.TIME, GROUP.TIME, K, a, S) {
   # Average RSSI values by each minute for each TagId and NodeId
   # ignore warning
   beep.grouped <- beep.slide %>%
-    dplyr::group_by(tag_id) %>%
+    dplyr::group_by(tag_id) 
+  
+  if (is.null(startval)) {
+    beep.grouped <- beep.grouped %>%
     padr::thicken(GROUP.TIME, colname="Time.group", by = "time") %>%
     dplyr::group_by(tag_id, node_id, Time.group) %>%
     dplyr::summarise(mean_rssi = mean(roll.TagRSSI), beep_count = length(roll.TagRSSI)) %>%
-    ungroup()
+    ungroup()} else {
+      beep.grouped <- beep.grouped %>%
+        padr::thicken(GROUP.TIME, colname="Time.group", by = "time", start_val=startval) %>%
+        dplyr::group_by(tag_id, node_id, Time.group) %>%
+        dplyr::summarise(mean_rssi = mean(roll.TagRSSI), beep_count = length(roll.TagRSSI)) %>%
+        ungroup()
+    }
   
+  e.dist <- (log(beep.grouped$mean_rssi - K) - log(a)) / -S
+  beep.grouped$e.dist <- e.dist
   
   # calculate radius around a node given the exponential relationship between RSSI and distance
-  beep.grouped <- beep.grouped %>%
-    dplyr::mutate(e.dist = (log(mean_rssi - K) - log(a)) / -S)
   
   # Remove data with NAs produced from e.dist
   beep.grouped <- beep.grouped[complete.cases(beep.grouped),]
@@ -586,7 +595,7 @@ prep.data <- function(x,y, SLIDE.TIME, GROUP.TIME, K, a, S) {
   beep.grouped <- beep.grouped %>%
     dplyr::left_join(y[,c("node_id", "node_lng", "node_lat")])
   
-  return(beep.grouped)
+  return(beep.grouped[order(beep.grouped$Time.group),])
   
 }
 
