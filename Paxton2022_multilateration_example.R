@@ -137,13 +137,6 @@ leaflet() %>%
       fillOpacity = 0.5,
       label = nodes$node_id
     )  %>%
-    #addPolylines(
-    # data = track_error_df,
-    #lat = track_error_df$lat_est,
-    # lng = track_error_df$lon_est,
-    #color = "red",
-    #  weight = 2
-    #) %>%
     addCircles(
       data=testout, 
       lat = testout$node_lat,
@@ -152,7 +145,6 @@ leaflet() %>%
       color = "red",
       #fillColor = "red",
       fillOpacity = 0)
-  #label = paste(track_error_df$i, ":", as_datetime(track_error_df$time), " : ", track_error_df$error)
 
 no.filters <- trilateration.TestData.NoFilter(combined.data)
 RSS.FILTER <- c(-80, -85, -90, -95)
