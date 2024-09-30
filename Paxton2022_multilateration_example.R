@@ -119,6 +119,41 @@ a <- unname(coef(nls.mod)[1])
 S <- unname(coef(nls.mod)[2])
 
 combined.data <- estimate.distance(combined.data, K, a, S)
+
+tile_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+testout <- combined.data[combined.data$TestId==0,]
+leaflet() %>%
+    addTiles(
+      urlTemplate = tile_url,
+      options = tileOptions(maxZoom = 25)
+    ) %>%
+    addCircleMarkers(
+      data = nodes,
+      lat = nodes$node_lat,
+      lng = nodes$node_lng,
+      radius = 5,
+      color = "cyan",
+      fillColor = "cyan",
+      fillOpacity = 0.5,
+      label = nodes$node_id
+    )  %>%
+    #addPolylines(
+    # data = track_error_df,
+    #lat = track_error_df$lat_est,
+    # lng = track_error_df$lon_est,
+    #color = "red",
+    #  weight = 2
+    #) %>%
+    addCircles(
+      data=testout, 
+      lat = testout$node_lat,
+      lng = testout$node_lng,
+      radius = testout$distance,
+      color = "red",
+      #fillColor = "red",
+      fillOpacity = 0)
+  #label = paste(track_error_df$i, ":", as_datetime(track_error_df$time), " : ", track_error_df$error)
+
 no.filters <- trilateration.TestData.NoFilter(combined.data)
 RSS.FILTER <- c(-80, -85, -90, -95)
 RSS.filters <- trilateration.TestData.RSS.Filter(combined.data, RSS.FILTER)
@@ -141,4 +176,4 @@ beep.grouped <- prep.data(test_data,nodes,SLIDE.TIME,GROUP.TIME,K, a, S)
 RSS.filter <- -95
 location.estimates <- trilateration(beep.grouped, nodes, RSS.FILTER)
 
-
+mapping(nodes, location.estimates)
