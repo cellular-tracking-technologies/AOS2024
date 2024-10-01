@@ -21,7 +21,8 @@ source("R/functions/grid_search/grid_search_functions.R")
 ##  SPECIFY PARAMETERS HERE
 ## -----------------------------------------------------------------------------
 # Specify the path to your database file
-database_file <- "~/development/aos_test/data/meadows.duckdb"
+#database_file <- "~/development/aos_test/data/meadows.duckdb"
+database_file <- "~/Desktop/full_data/meadows.duckdb"
 
 # (OPTIONAL) Specify Node time offsets if necessary
 node_time_offset_file <- "data/meadows/node_time_offset_8_2_2023.csv"
@@ -66,8 +67,6 @@ node_health_df <- tbl(con, "node_health") |>
   filter(time >= node_start_time & time <= node_stop_time) |>
   collect()
 DBI::dbDisconnect(con)
-# Remove duplicates
-node_health_df <- node_health_df %>% distinct(node_id, time, recorded_at, .keep_all = TRUE)
 ## -----------------------------------------------------------------------------
 ##  2.) GET NODE LOCATIONS
 ## -----------------------------------------------------------------------------
@@ -144,7 +143,7 @@ multilat_fit <- nls(reduced_rec_df$exp_dist ~ haversine(reduced_rec_df$lat,reduc
 print(multilat_fit)
 co <- coef(summary(multilat_fit))
 print(paste(co[1,1],co[2,1]))
-
+multilat_result <- c(co[1,1],co[2,1])
 test_map <- draw_single_solution(test_rec_df, test_grid_values, solution, multilat_result, my_tile_url)
 test_map
 
@@ -190,7 +189,7 @@ print(track_error_df)
 print(min(track_error_df$error))
 print(max(track_error_df$error))
 print(paste("GS Solution Error = ", mean(track_error_df$error), " +/- ", sd(track_error_df$error)))
-print(paste("ML Solution Error = ", mean(track_error_df$ml_error), " +/- ", sd(track_error_df$ml_error)))
+#print(paste("ML Solution Error = ", mean(track_error_df$ml_error), " +/- ", sd(track_error_df$ml_error)))
 
 compare_map <- map_track_error(node_locs, track_error_df, sidekick_df, my_tile_url)
 compare_map
