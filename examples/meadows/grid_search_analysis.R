@@ -40,12 +40,12 @@ rssi_coefs <- c(a, b, c)
 #   This range should cover a large time window where your nodes were in
 #   a constant location.  All node health records in this time window
 #   will be used to accurately determine the position of your nodes
-node_start_time <- as.POSIXct("2023-08-01 00:00:00",tz = "GMT")
-node_stop_time <- as.POSIXct("2023-08-07 00:00:00",tz = "GMT")
+node_start_time <- as.POSIXct("2023-08-01 00:00:00", tz = "GMT")
+node_stop_time <- as.POSIXct("2023-08-07 00:00:00", tz = "GMT")
 
 # Specify time range of detection data you want to pull from the DB
-det_start_time <- as.POSIXct("2023-08-03 00:00:00",tz = "GMT")
-det_stop_time <- as.POSIXct("2023-08-04 00:00:00",tz = "GMT")
+det_start_time <- as.POSIXct("2023-08-03 00:00:00", tz = "GMT")
+det_stop_time <- as.POSIXct("2023-08-04 00:00:00", tz = "GMT")
 
 # Specify a list of node Ids if you only want to include a subset in calibration
 # IF you want to use all nodes, ignore this line and SKIP the step below
@@ -62,7 +62,7 @@ my_tile_url <- "https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
 ## -----------------------------------------------------------------------------
 # Load from DB
 con <- DBI::dbConnect(duckdb::duckdb(), dbdir = database_file, read_only = TRUE)
-node_health_df <- tbl(con, "node_health") |> 
+node_health_df <- tbl(con, "node_health") |>
   filter(time >= node_start_time & time <= node_stop_time) |>
   collect()
 DBI::dbDisconnect(con)
@@ -77,7 +77,7 @@ node_locs <- calculate_node_locations(node_health_df)
 node_loc_plot <- plot_node_locations(node_health_df, theme = classic_plot_theme)
 node_loc_plot
 # Write the node locations to a file
-export_node_locations("examples/meadows/output/node_locations.csv",node_locs)
+export_node_locations("examples/meadows/output/node_locations.csv", node_locs)
 # Draw a map with the node locations
 node_map <- map_node_locations(node_locs, tile_url = my_tile_url)
 node_map
@@ -87,14 +87,12 @@ node_map
 ## -----------------------------------------------------------------------------
 # Load from DB
 con <- DBI::dbConnect(duckdb::duckdb(), dbdir = database_file, read_only = TRUE)
-detection_df <- tbl(con, "raw") |> 
+detection_df <- tbl(con, "raw") |>
   filter(time >= det_start_time & time <= det_stop_time) |>
+  filter(tag_id == my_tag_id) |>
   collect()
 DBI::dbDisconnect(con)
-
-# Get beeps from test tag only
-detection_df <- subset.data.frame(detection_df, tag_id == my_tag_id)
-
+detection_df <- detection_df %>% mutate(time_value = as.integer(time))
 ## -----------------------------------------------------------------------------
 ##  4.) BUILD A GRID
 ## -----------------------------------------------------------------------------
@@ -119,30 +117,41 @@ grid_map
 ## -----------------------------------------------------------------------------
 ##  5.) (OPTIONAL) CALCULATE TEST SOLUTION
 ## -----------------------------------------------------------------------------
-test_time <- as.POSIXct("2023-08-03 19:57:45",tz = "GMT")
-test_detection_window <- 10
-detection_df <- detection_df %>% mutate(time_value = as.integer(time))
-
+test_time <- as.POSIXct("2023-08-03 19:57:50", tz = "GMT")
 test_rec_df <- calc_receiver_values(
-  current_time = test_time, 
-  det_window = 60, 
-  station_tag_df = detection_df, 
-  node_locs = node_locs, 
-  node_t_offset = node_toff_df, 
-  rssi_coefs = rssi_coefs, 
-  filter_alpha = 0.7, 
-  filter_time_range = 120)
+  current_time = test_time,
+  det_window = 60,
+  station_tag_df = detection_df,
+  node_locs = node_locs,
+  node_t_offset = node_toff_df,
+  rssi_coefs = rssi_coefs,
+  filter_alpha = 0.7,
+  filter_time_range = 120
+)
 print(test_rec_df)
+# Find the GridSearch Solution
 test_grid_values <- calc_grid_values(grid_df, test_rec_df, rssi_coefs)
 solution <- subset(test_grid_values, test_grid_values$value == max(test_grid_values$value))
 print(solution)
-test_map <- draw_single_solution(test_rec_df, test_grid_values, solution, my_tile_url)
+# Multilateration calculation
+reduced_rec_df <- subset.data.frame(test_rec_df, test_rec_df$filtered_rssi >= a)
+node_w_max <- reduced_rec_df[reduced_rec_df$filtered_rssi == max(reduced_rec_df$filtered_rssi),]
+multilat_fit <- nls(reduced_rec_df$exp_dist ~ haversine(reduced_rec_df$lat,reduced_rec_df$lon,ml_lat,ml_lon),
+                      reduced_rec_df,
+                      start= list(ml_lat = node_w_max$lat, ml_lon = node_w_max$lon),
+                      control=nls.control(warnOnly = T, minFactor=1/65536, maxiter = 100)
+                    )
+print(multilat_fit)
+co <- coef(summary(multilat_fit))
+print(paste(co[1,1],co[2,1]))
+
+test_map <- draw_single_solution(test_rec_df, test_grid_values, solution, multilat_result, my_tile_url)
 test_map
 
 ## -----------------------------------------------------------------------------
 ##  6.) CALCULATE TRACK
 ## -----------------------------------------------------------------------------
-#track_frame_output_path <- "output/track_frames/"
+# track_frame_output_path <- "output/track_frames/"
 track_df <- calculate_track(
   start_time = "2023-08-03 19:50:45",
   length_seconds = 1050,
@@ -180,17 +189,22 @@ track_error_df <- calc_track_error(sidekick_df, track_df)
 print(track_error_df)
 print(min(track_error_df$error))
 print(max(track_error_df$error))
-print(paste("Solution Error = ", mean(track_error_df$error), " +/- ", sd(track_error_df$error)))
+print(paste("GS Solution Error = ", mean(track_error_df$error), " +/- ", sd(track_error_df$error)))
+print(paste("ML Solution Error = ", mean(track_error_df$ml_error), " +/- ", sd(track_error_df$ml_error)))
 
 compare_map <- map_track_error(node_locs, track_error_df, sidekick_df, my_tile_url)
 compare_map
 
 # Uncertainty analysis
 ggplot() +
+  geom_point(data = track_error_df, aes(x = i, y = ml_error), color = "orange") +
   geom_point(data = track_error_df, aes(x = i, y = error)) +
+  xlab("Track Point #") +
+  ylab("Solution Error (m)") +
   classic_plot_theme
 
 ggplot() +
+  #geom_point(data = track_error_df, aes(x = max_rssi, y = ml_error), color = "orange") +
   geom_point(data = track_error_df, aes(x = max_rssi, y = error)) +
   xlab("Max RSSI (dBm)") +
   ylab("Position Error (m)") +

@@ -34,6 +34,23 @@ map_track <- function(node_locs, track_df, tile_url = "https://tile.openstreetma
             fillColor = "red",
             fillOpacity = 1.0,
             label = as_datetime(track_df$time)
+        ) %>%
+        addPolylines(
+            data = track_df,
+            lat = track_df$ml_lat,
+            lng = track_df$ml_lon,
+            color = "orange",
+            weight = 2
+        ) %>%
+        addCircleMarkers(
+            data = track_df,
+            lat = track_df$ml_lat,
+            lng = track_df$ml_lon,
+            radius = 1,
+            color = "orange",
+            fillColor = "orange",
+            fillOpacity = 1.0,
+            label = as_datetime(track_df$time)
         )
     return(map)
 }
