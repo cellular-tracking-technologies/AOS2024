@@ -2,10 +2,11 @@ library(dplyr)
 library(leaflet)
 library(lubridate)
 
-map_track_error <- function(
+map_multilat <- function(
     node_locs,
     track_error_df,
     sidekick_df,
+    multilat_df,
     tile_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png") {
     error_lines <- data.frame(
         id = integer(),
@@ -76,25 +77,23 @@ map_track_error <- function(
             fillColor = "red",
             fillOpacity = 1.0,
             label = paste(track_error_df$i, ":", as_datetime(track_error_df$time), " : ", track_error_df$error)
-        ) 
-        # %>%
-        # Multilat Solutions
-        # addPolylines(
-        #     data = track_df,
-        #     lat = track_df$ml_lat,
-        #     lng = track_df$ml_lon,
-        #     color = "orange",
-        #     weight = 2
-        # ) %>%
-        # addCircleMarkers(
-        #     data = track_df,
-        #     lat = track_df$ml_lat,
-        #     lng = track_df$ml_lon,
-        #     radius = 1,
-        #     color = "orange",
-        #     fillColor = "orange",
-        #     fillOpacity = 1.0,
-        #     label = as_datetime(track_df$time)
-        # )
+        ) %>%
+        addPolylines(
+            data = multilat_df,
+            lat = multilat_df$lat_est,
+            lng = multilat_df$lon_est,
+            color = "orange",
+            weight = 2
+        ) %>%
+        addCircleMarkers(
+            data = multilat_df,
+            lat = multilat_df$lat_est,
+            lng = multilat_df$lon_est,
+            radius = 1,
+            color = "orange",
+            fillColor = "orange",
+            fillOpacity = 1.0,
+            # label = paste(track_error_df$i, ":", as_datetime(track_error_df$time), " : ", track_error_df$error)
+        )
     return(map)
 }

@@ -1,59 +1,60 @@
 library(dplyr)
+library(duckdb)
 library(ggplot2)
 
 options(digits = 10)
 
 # DEFS
-source("src/defs/plot_themes.R")
+source("R/defs/plot_themes.R")
 # TAG
-source("src/functions/tag/load_node_detection_data.R")
+source("R/functions/tag/load_node_detection_data.R")
 # NDOE
-source("src/functions/node/node_functions.R")
+source("R/functions/node/node_functions.R")
 # GRID SEARCH
-source("src/functions/grid_search/grid_search_functions.R")
+source("R/functions/grid_search/grid_search_functions.R")
 
 ## -----------------------------------------------------------------------------
 ##  SPECIFY INPUTS HERE
 ## -----------------------------------------------------------------------------
-# Specify the path to the directory with your node health data
-node_health_directory <- "data/meadows_stopover/station/nodes/"
-# Specify the path to the directory with your station detection data
-tag_data_directory <- "data/meadows_stopover/station/raw_data/"
+# Specify the path to your database file
+database_file <- "~/development/aos_test/data/meadows.duckdb"
 # Specify the path to the deployment info file
-deployment_info_file <- "data/meadows_stopover/meadows_deployments_2023.csv"
+deployment_info_file <- "data/meadows/meadows_deployments_2023.csv"
 
 # Specify the RSSI vs Distance fit coefficients from calibration
-#a <- -103.0610446987
+# a <- -103.0610446987
 a <- -115.0 # Lowered to work for the 1/8 wave tags?
-b <- -60.6023833206 
+b <- -60.6023833206
 c <- 0.0120558164
-rssi_coefs <- c(a,b,c)
+rssi_coefs <- c(a, b, c)
 
 # Specify the time range of node data you want to import for this analysis
-#   This range should cover a large time window where your nodes were in 
+#   This range should cover a large time window where your nodes were in
 #   a constant location.  All node health records in this time window
 #   will be used to accurately determine the position of your nodes
-node_start_time <- "2023-08-01 00:00:00"
-node_stop_time <- "2023-08-07 00:00:00"
+node_start_time <- as.POSIXct("2023-08-01 00:00:00", tz = "GMT")
+node_stop_time <- as.POSIXct("2023-08-07 00:00:00", tz = "GMT")
 
 # Selected Tag Id
 selected_tag_id <- "2D4B782D" # SWSP - Power Tag
 # Analysis Time Range
-analysis_start_time <- as.POSIXct("2023-10-03 12:00:00", tz = "GMT")
-analysis_stop_time <- as.POSIXct("2023-10-06 12:00:00", tz = "GMT")
+det_start_time <- as.POSIXct("2023-10-03 12:00:00", tz = "GMT")
+det_stop_time <- as.POSIXct("2023-10-06 12:00:00", tz = "GMT")
 
 # You can specify an alternative map tile URL to use here
 my_tile_url <- "https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+
 ## -----------------------------------------------------------------------------
 ##  1.) LOAD NODE HEALTH DATA FROM FILES
 ## -----------------------------------------------------------------------------
-node_health_df <- load_node_health_files(node_health_directory)
-node_health_df <- node_health_df %>% mutate(time_value = get_time_value(node_health_df$Time))
-node_health_df <- subset.data.frame(node_health_df, time_value >= get_time_value(node_start_time))
-node_health_df <- subset.data.frame(node_health_df, time_value <= get_time_value(node_stop_time))
-# If you want to select only specific nodes to include in calibration
-# SKIP this line if you want to use all nodes!
-# node_health_df <- subset.data.frame(node_health_df, NodeId %in% my_nodes)
+# Load from DB
+con <- DBI::dbConnect(duckdb::duckdb(), dbdir = database_file, read_only = TRUE)
+node_health_df <- tbl(con, "node_health") |>
+  filter(time >= node_start_time & time <= node_stop_time) |>
+  collect()
+DBI::dbDisconnect(con)
+# Remove duplicates
+node_health_df <- node_health_df %>% distinct(node_id, time, recorded_at, .keep_all = TRUE)
 
 ## -----------------------------------------------------------------------------
 ##  2.) GET NODE LOCATIONS
@@ -70,17 +71,16 @@ node_map <- map_node_locations(node_locs, tile_url = my_tile_url)
 node_map
 
 ## -----------------------------------------------------------------------------
-##  3.) LOAD TAG NODE DETECTION DATA FROM STATION FILES
+##  3.) LOAD STATION DETECTION DATA
 ## -----------------------------------------------------------------------------
-detection_df <- load_node_detection_data(tag_data_directory)
-# Remove detections from other tags
-detection_df <- subset.data.frame(detection_df, TagId == selected_tag_id)
-# Remove detections out of analysis time range
-detection_df <- subset.data.frame(detection_df, detection_df$Time >= analysis_start_time)
-detection_df <- subset.data.frame(detection_df, detection_df$Time <= analysis_stop_time)
-
-detection_df <- detection_df %>% mutate(time_value = get_time_value(detection_df$Time))
-
+# Load from DB
+con <- DBI::dbConnect(duckdb::duckdb(), dbdir = database_file, read_only = TRUE)
+detection_df <- tbl(con, "raw") |>
+  filter(time >= det_start_time & time <= det_stop_time) |>
+  filter(tag_id == selected_tag_id) |>
+  collect()
+DBI::dbDisconnect(con)
+detection_df <- detection_df %>% mutate(time_value = as.integer(time))
 
 ## -----------------------------------------------------------------------------
 ##  4.) BUILD A GRID
@@ -92,11 +92,11 @@ grid_size_y <- 800 # meters
 grid_bin_size <- 5 # meters
 # Create a data frame with the details about the grid
 grid_df <- build_grid(
-  node_locs = node_locs, 
-  center_lat = grid_center_lat, 
-  center_lon = grid_center_lon, 
-  x_size_meters = grid_size_x, 
-  y_size_meters = grid_size_y, 
+  node_locs = node_locs,
+  center_lat = grid_center_lat,
+  center_lon = grid_center_lon,
+  x_size_meters = grid_size_x,
+  y_size_meters = grid_size_y,
   bin_size = grid_bin_size
 )
 # Draw all of the grid bins on a map
@@ -107,18 +107,23 @@ grid_map
 ##  6.) CALCULATE LOCATIONS
 ## -----------------------------------------------------------------------------
 locations_df <- calculate_track(
-  start_time = "2023-10-04 23:00:00", 
-  length_seconds = 6*3600, 
-  step_size_seconds = 15, 
+  start_time = "2023-10-04 23:00:00",
+  length_seconds = 6 * 3600,
+  step_size_seconds = 15,
   det_time_window = 30, # Must have detection within this window to be included in position calculation
   filter_alpha = 0.7,
   filter_time_range = 60, # Time range to include detections in filtered value
-  grid_df = grid_df, 
-  detection_df = detection_df, 
-  node_locs = node_locs, 
+  grid_df = grid_df,
+  detection_df = detection_df,
+  node_locs = node_locs,
   rssi_coefs = rssi_coefs,
   track_frame_output_path = NULL # If NULL no individual frames will be saved
 )
 print(track_df)
-track_map <- map_track(node_locs,locations_df,my_tile_url)
+track_map <- map_track(node_locs, locations_df, my_tile_url)
 track_map
+
+source("R/functions/grid_search/grid_search_functions.R")
+loc_density <- calc_location_density(grid_df = grid_df, locations_df = locations_df)
+loc_desnity_map <- map_location_density(loc_density_df = loc_density,my_tile_url)
+loc_desnity_map
